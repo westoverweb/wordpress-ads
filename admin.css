@@ -74,15 +74,6 @@
 	font-size: 13px;
 }
 
-.image-ad-slot__shortcode {
-	background: rgba(255, 255, 255, 0.18);
-	border: none;
-	color: #fff;
-	border-radius: 3px;
-	padding: 2px 7px;
-	font-size: 11px;
-}
-
 /* Preview ------------------------------------------------------------ */
 .image-ad-slot__preview {
 	display: flex;

@@ -118,10 +118,9 @@ class Image_Ads_Plugin {
 					<div class="image-ads-tab <?php echo $active_tab === $pos_key ? 'image-ads-tab--active' : ''; ?>">
 
 						<div class="image-ads-shortcode-bar">
-							<strong>Shortcodes:</strong>
-							<?php for ( $i = 1; $i <= self::SLOTS; $i++ ) : ?>
-								<code>[<?php echo esc_html( $this->shortcode_tag( $pos_key, $i ) ); ?>]</code>
-							<?php endfor; ?>
+							<strong>Shortcode:</strong>
+							<code>[<?php echo esc_html( $this->shortcode_tag( $pos_key ) ); ?>]</code>
+							&nbsp; — randomly rotates among the ad slots below that have an image set.
 						</div>
 
 						<div class="image-ads-grid">
@@ -149,7 +148,6 @@ class Image_Ads_Plugin {
 		<div class="image-ad-slot">
 			<div class="image-ad-slot__header">
 				<span class="image-ad-slot__number">Ad <?php echo esc_html( $slot_num ); ?></span>
-				<code class="image-ad-slot__shortcode">[<?php echo esc_html( $this->shortcode_tag( $pos_key, $slot_num ) ); ?>]</code>
 			</div>
 
 			<div class="image-ad-slot__preview <?php echo $has_image ? '' : 'image-ad-slot__preview--empty'; ?>">
@@ -218,27 +216,32 @@ class Image_Ads_Plugin {
 
 	private function register_shortcodes() {
 		foreach ( array_keys( self::POSITIONS ) as $pos ) {
-			for ( $i = 1; $i <= self::SLOTS; $i++ ) {
-				add_shortcode( $this->shortcode_tag( $pos, $i ), function( $atts ) use ( $pos, $i ) {
-					return $this->render_ad( $pos, $i );
-				} );
-			}
+			add_shortcode( $this->shortcode_tag( $pos ), function( $atts ) use ( $pos ) {
+				return $this->render_random_ad( $pos );
+			} );
 		}
 	}
 
-	private function render_ad( $pos, $slot ) {
-		$ad = get_option( "image_ads_{$pos}_{$slot}", $this->empty_ad() );
+	private function render_random_ad( $pos ) {
+		$available = [];
+		for ( $i = 1; $i <= self::SLOTS; $i++ ) {
+			$ad = get_option( "image_ads_{$pos}_{$i}", $this->empty_ad() );
+			if ( ! empty( $ad['image_url'] ) ) {
+				$available[] = $ad;
+			}
+		}
 
-		if ( empty( $ad['image_url'] ) ) {
+		if ( empty( $available ) ) {
 			return '';
 		}
 
+		$ad = $available[ array_rand( $available ) ];
+
 		$img = sprintf(
-			'<img src="%s" alt="%s" class="image-ad image-ad--%s image-ad--slot-%d">',
+			'<img src="%s" alt="%s" class="image-ad image-ad--%s">',
 			esc_url( $ad['image_url'] ),
 			esc_attr( $ad['alt_text'] ),
-			esc_attr( $pos ),
-			(int) $slot
+			esc_attr( $pos )
 		);
 
 		if ( ! empty( $ad['link_url'] ) ) {
@@ -258,14 +261,14 @@ class Image_Ads_Plugin {
 	// Helpers
 	// -------------------------------------------------------------------------
 
-	private function shortcode_tag( $pos, $slot ) {
-		$prefix = [
+	private function shortcode_tag( $pos ) {
+		$tags = [
 			'top_banner'    => 'top_banner',
 			'side_banner'   => 'side_banner',
 			'bottom_banner' => 'bottom_banner',
 			'blog_post'     => 'blog_post_ad',
 		];
-		return ( $prefix[ $pos ] ?? $pos ) . '_' . $slot;
+		return $tags[ $pos ] ?? $pos;
 	}
 
 	private function sanitize_ad( $raw ) {
