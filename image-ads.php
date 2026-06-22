@@ -2,11 +2,12 @@
 /**
  * Plugin Name: Image Ads
  * Description: Manage image ads for Top Banner, Side Banner, Bottom Banner, and Blog Post Content areas via shortcodes, plus Google AdSense auto-insertion on single posts.
- * Version: 1.2.0
+ * Version: 1.2.1
  * Author: WP Site Mason
  * License: GPL2
  *
  * == Changelog ==
+ * 1.2.1 - Fix AdSense auto-insertion not firing on block themes (FSE) and page builders by removing the in_the_loop()/is_main_query() guards; restrict to standard posts and skip feeds.
  * 1.2.0 - Add Google AdSense settings tab with automatic in-content insertion on single blog posts (not pages).
  * 1.1.0 - Replace per-slot shortcodes with one shortcode per position that randomly rotates among the configured slots on each page load.
  * 1.0.0 - Initial release: Top Banner, Side Banner, Bottom Banner, and Blog Post Content positions, each with 4 image ad slots.
@@ -18,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Image_Ads_Plugin {
 
-	const VERSION = '1.2.0';
+	const VERSION = '1.2.1';
 
 	const POSITIONS = [
 		'top_banner'    => 'Top Banner',
@@ -345,8 +346,11 @@ class Image_Ads_Plugin {
 	// -------------------------------------------------------------------------
 
 	public function auto_insert_adsense( $content ) {
-		// Posts only — never pages — and only the main content in the main loop.
-		if ( is_admin() || ! is_singular( 'post' ) || ! in_the_loop() || ! is_main_query() ) {
+		// Standard blog posts only — never pages, custom post types, feeds, or admin.
+		// Deliberately does NOT check in_the_loop()/is_main_query(): block themes (FSE)
+		// and page builders render post content outside the classic loop, which would
+		// otherwise suppress insertion entirely.
+		if ( is_admin() || is_feed() || ! is_singular( 'post' ) ) {
 			return $content;
 		}
 
